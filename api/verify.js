@@ -17,7 +17,7 @@
 //
 // Output body (JSON):
 //   { verdict: 'true'|'misleading'|'false'|'unverified', confidence: number,
-//     explanation_en: string, explanation_fil: string }
+//     explanation_en: string, explanation_fil: string, search_query: string }
 
 const VALID_VERDICTS = ['true', 'misleading', 'false', 'unverified'];
 
@@ -47,9 +47,15 @@ module.exports = async function handler(req, res) {
       'Reply ONLY with a compact JSON object, no markdown, no code fences, with this exact shape: ' +
       '{"verdict":"true|misleading|false|unverified","confidence":<0-99 integer>,' +
       '"explanation_en":"<1-2 sentence explanation in English>",' +
-      '"explanation_fil":"<1-2 sentence explanation in Filipino>"}. ' +
+      '"explanation_fil":"<1-2 sentence explanation in Filipino>",' +
+      '"search_query":"<a short, plain-English web search phrase (6-14 words) describing the SPECIFIC ' +
+      'claim/event/people/place shown or described in the post, written so it could find real news ' +
+      'coverage or fact-checks about this exact topic anywhere on the web — not the filename, not generic ' +
+      'words like screenshot or video>"}. ' +
       'If a video frame is provided, remember it is only one still frame, not the full video or audio — ' +
-      'be appropriately cautious and lean toward "unverified" when the frame alone can\'t settle the claim.';
+      'be appropriately cautious and lean toward "unverified" when the frame alone can\'t settle the claim. ' +
+      'Base the search_query on what you can actually see/read (people, place, event, claim, date), not on ' +
+      'the file type or name.';
 
     const userTextParts = [];
     if (safeType === 'video') {
@@ -114,8 +120,9 @@ module.exports = async function handler(req, res) {
     const confidence = Math.max(1, Math.min(99, Math.round(Number(parsed.confidence) || 50)));
     const explanation_en = (parsed.explanation_en || '').toString().slice(0, 500) || 'No explanation provided.';
     const explanation_fil = (parsed.explanation_fil || '').toString().slice(0, 500) || 'Walang ibinigay na paliwanag.';
+    const search_query = (parsed.search_query || '').toString().trim().slice(0, 200);
 
-    res.status(200).json({ verdict, confidence, explanation_en, explanation_fil });
+    res.status(200).json({ verdict, confidence, explanation_en, explanation_fil, search_query });
   } catch (err) {
     console.error('verify.js error:', err);
     res.status(500).json({ error: 'Internal error' });
